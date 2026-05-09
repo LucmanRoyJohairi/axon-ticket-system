@@ -1,3 +1,5 @@
+import { AuthToken } from "@/types";
+
 const USE_MOCK = true
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1'
 
@@ -28,4 +30,23 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T>{
         throw new Error(err.detail ?? 'Request failed')
     }
     return res.json();
+}
+
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+export async function login(email: string, password: string): Promise<AuthToken> {
+  if (USE_MOCK) {
+    // Fake a 500ms network delay so it feels real
+     await new Promise(resolve => setTimeout(resolve, 500));
+    return {
+      access_token: 'mock-token-abc123',
+      token_type: 'bearer',
+      user: { id: 'usr_01', email, full_name: 'Zero', is_admin: true, created_at: '' },
+    }
+  }
+  return apiFetch<AuthToken>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  })
 }
