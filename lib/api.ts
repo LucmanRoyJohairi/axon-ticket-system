@@ -1,9 +1,19 @@
-import { AuthToken } from "@/types";
+import { AuthToken, Ticket, TicketListResponse } from "@/types";
+import { MOCK_TICKETS } from "./mock-data";
 
 const USE_MOCK = true
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1'
 
 // Auth helpers
+
+interface getTicketParams {
+  page?: number
+  status?: string
+  priority?: string
+  category?: string
+}
+
+
 
 function getToken(): string | null{
     if(typeof window === 'undefined') return null
@@ -49,4 +59,31 @@ export async function login(email: string, password: string): Promise<AuthToken>
     method: 'POST',
     body: JSON.stringify({ email, password }),
   })
+}
+
+// ─── Tickets ─────────────────────────────────────────────────────────────────────
+export async function getTickets(params?: getTicketParams): Promise<TicketListResponse> {
+  if(USE_MOCK){
+    await new Promise(resolve => setTimeout(resolve, 300));
+    let tickets = [...MOCK_TICKETS]
+    if(params?.status) tickets = tickets.filter(t => t.status === params.status)
+    if(params?.priority) tickets = tickets.filter(t => t.priority === params.priority)
+    if(params?.category) tickets = tickets.filter(t => t.category === params.category)
+    return {tickets, total:tickets.length, page: 1, page_size: 20}
+  }
+
+  const queryParams = new URLSearchParams(
+    Object.entries(params ?? {}).filter(([,v]) => v != null).map(([k,v]) => [k, String(v)])
+  ).toString()
+  return apiFetch<TicketListResponse>(`/tickets${queryParams ? `?${queryParams}` : ''}`)
+}
+
+export async function getTicket(id: string): Promise<Ticket> {
+  if (USE_MOCK) {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const ticket = MOCK_TICKETS.find(t => t.id === id)
+    if (!ticket) throw new Error('Ticket not found')
+    return ticket
+  }
+  return apiFetch<Ticket>(`/tickets/${id}`)
 }
